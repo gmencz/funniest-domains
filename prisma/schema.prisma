@@ -15,4 +15,5 @@ model Domain {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String   @unique @db.VarChar(255)
+  likes     Int      @default(0)
 }

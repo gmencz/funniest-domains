@@ -7,7 +7,7 @@ A collection of the funniest domains out there with rankings
 In one terminal:
 
 ```
-pscale connect funniest-domains main --port 3309
+pscale connect funniest-domains dev --port 3309
 ```
 
 In another terminal:
