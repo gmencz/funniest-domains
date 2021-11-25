@@ -63,3 +63,46 @@
 .pagination-page-link:hover {
   background-color: #dbdbdb;
 }
+
+.login-dialog {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  overflow-y: auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-dialog h2 {
+  margin: 0;
+}
+
+.login-dialog-overlay {
+  background-color: rgba(219, 219, 219, 0.75);
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+}
+
+.login-dialog-content {
+  background-color: white;
+  position: relative;
+  max-width: 420px;
+  padding: 16px;
+  width: 100%;
+}
+
+.login-dialog input {
+  padding: 4px;
+}
+
+.login-dialog button[type="submit"] {
+  padding: 4px;
+  cursor: pointer;
+}

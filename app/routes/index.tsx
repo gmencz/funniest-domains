@@ -9,7 +9,8 @@ import { useLoaderData, useTransition, Link, json, redirect } from "remix";
 import invariant from "tiny-invariant";
 import { db } from "~/utils/db.server";
 import { DomainsList } from "~/components/domains-list";
-import styles from "~/styles/domains.css";
+import styles from "~/styles/index.css";
+import { getUserId } from "~/utils/session.server";
 
 export let meta: MetaFunction = () => {
   return {
@@ -25,6 +26,7 @@ export let links: LinksFunction = () => {
 type LoaderData = {
   domains: Pick<Domain, "id" | "name" | "likes">[];
   pages: number;
+  isLoggedIn: boolean;
 };
 
 const DOMAINS_PER_PAGE = 1;
@@ -45,7 +47,11 @@ export let loader: LoaderFunction = async ({ request }) => {
     db.domain.count(),
   ]);
 
-  return { domains, pages: Math.ceil(domainsCount / DOMAINS_PER_PAGE) };
+  return {
+    domains,
+    pages: Math.ceil(domainsCount / DOMAINS_PER_PAGE),
+    isLoggedIn: !!(await getUserId(request)),
+  };
 };
 
 export let action: ActionFunction = async ({ request }) => {
@@ -68,13 +74,18 @@ export let action: ActionFunction = async ({ request }) => {
       });
 
       return redirect(url.pathname + url.search);
+    case "login":
+      console.log({ body });
+
+      return redirect(url.pathname + url.search);
+
     default:
       return redirect(url.pathname + url.search);
   }
 };
 
 export default function Domains() {
-  let { domains, pages } = useLoaderData<LoaderData>();
+  let { domains, pages, isLoggedIn } = useLoaderData<LoaderData>();
   let transition = useTransition();
   let optimisticDomainsList;
 
@@ -89,6 +100,7 @@ export default function Domains() {
 
         optimisticDomainsList = (
           <DomainsList
+            isLoggedIn={isLoggedIn}
             domains={domains.map((domain) => {
               if (domain.id === domainId) {
                 return {
@@ -108,7 +120,9 @@ export default function Domains() {
     <div className="container">
       <h1>funniest.domains</h1>
 
-      {optimisticDomainsList ?? <DomainsList domains={domains} />}
+      {optimisticDomainsList ?? (
+        <DomainsList isLoggedIn={isLoggedIn} domains={domains} />
+      )}
 
       {pages > 1 ? (
         <footer className="pagination-footer">

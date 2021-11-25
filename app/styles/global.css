@@ -52,3 +52,16 @@ hr {
   white-space: nowrap;
   border-width: 0;
 }
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}

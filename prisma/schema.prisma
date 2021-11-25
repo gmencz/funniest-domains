@@ -16,4 +16,13 @@ model Domain {
   updatedAt DateTime @updatedAt
   name      String   @unique @db.VarChar(255)
   likes     Int      @default(0)
+  likedBy   User[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  username     String   @unique
+  likedDomains Domain[]
 }
