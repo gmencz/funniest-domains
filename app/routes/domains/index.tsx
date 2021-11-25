@@ -1,9 +1,26 @@
 import type { Domain } from "@prisma/client";
-import type { LoaderFunction, ActionFunction } from "remix";
-import { useLoaderData, redirect, useTransition, Link } from "remix";
+import type {
+  LoaderFunction,
+  ActionFunction,
+  MetaFunction,
+  LinksFunction,
+} from "remix";
+import { useLoaderData, useTransition, Link, json, redirect } from "remix";
 import invariant from "tiny-invariant";
 import { db } from "~/utils/db.server";
 import { DomainsList } from "~/components/domains-list";
+import styles from "~/styles/domains.css";
+
+export let meta: MetaFunction = () => {
+  return {
+    title: "Funniest domains",
+    description: "A collection of the funniest domains out there",
+  };
+};
+
+export let links: LinksFunction = () => {
+  return [{ rel: "stylesheet", href: styles }];
+};
 
 type LoaderData = {
   domains: Pick<Domain, "id" | "name" | "likes">[];
@@ -16,8 +33,6 @@ export let loader: LoaderFunction = async ({ request }) => {
   let url = new URL(request.url);
   let params = new URLSearchParams(url.search);
   let page = params.get("page") ?? 1;
-
-  console.log(Number(page) - 1);
 
   let [domains, domainsCount] = await Promise.all([
     db.domain.findMany({
@@ -36,6 +51,7 @@ export let loader: LoaderFunction = async ({ request }) => {
 export let action: ActionFunction = async ({ request }) => {
   let body = await request.formData();
   let action = body.get("_action");
+  let url = new URL(request.url);
 
   switch (action) {
     case "like":
@@ -51,9 +67,9 @@ export let action: ActionFunction = async ({ request }) => {
         },
       });
 
-      return redirect("/domains");
+      return redirect(url.pathname + url.search);
     default:
-      return redirect("/domains");
+      return redirect(url.pathname + url.search);
   }
 };
 
@@ -73,28 +89,25 @@ export default function Domains() {
 
         optimisticDomainsList = (
           <DomainsList
-            domains={domains
-              .map((domain) => {
-                if (domain.id === domainId) {
-                  return {
-                    ...domain,
-                    // We increment by 1.01 to get the same sorted result set that
-                    // the database will send if the submission suceeds. This is
-                    // a great example of optimistic UI.
-                    likes: domain.likes + 1.01,
-                  };
-                }
+            domains={domains.map((domain) => {
+              if (domain.id === domainId) {
+                return {
+                  ...domain,
+                  likes: domain.likes + 1,
+                };
+              }
 
-                return domain;
-              })
-              .sort((a, b) => (a.likes > b.likes ? -1 : 1))}
+              return domain;
+            })}
           />
         );
     }
   }
 
   return (
-    <>
+    <div className="container">
+      <h1>funniest.domains</h1>
+
       {optimisticDomainsList ?? <DomainsList domains={domains} />}
 
       {pages > 1 ? (
@@ -114,6 +127,6 @@ export default function Domains() {
           </ol>
         </footer>
       ) : null}
-    </>
+    </div>
   );
 }
