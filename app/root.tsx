@@ -1,6 +1,5 @@
 import * as React from "react";
 import {
-  Link,
   Links,
   LiveReload,
   Meta,
@@ -12,7 +11,7 @@ import {
 } from "remix";
 import type { LinksFunction } from "remix";
 
-import globalStylesUrl from "~/styles/global.css";
+import styles from "~/styles/app.css";
 
 /**
  * The `links` export is a function that returns an array of objects that map to
@@ -23,7 +22,7 @@ import globalStylesUrl from "~/styles/global.css";
  * https://remix.run/api/app#links
  */
 export let links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: globalStylesUrl }];
+  return [{ rel: "stylesheet", href: styles }];
 };
 
 /**
@@ -34,7 +33,9 @@ export let links: LinksFunction = () => {
 export default function App() {
   return (
     <Document>
-      <Outlet />
+      <div className="bg-gray-100 h-full">
+        <Outlet />
+      </div>
     </Document>
   );
 }

@@ -1,15 +1,9 @@
 import type { Domain } from "@prisma/client";
-import type {
-  LoaderFunction,
-  ActionFunction,
-  MetaFunction,
-  LinksFunction,
-} from "remix";
-import { useLoaderData, useTransition, Link, json, redirect } from "remix";
+import type { LoaderFunction, ActionFunction, MetaFunction } from "remix";
+import { useLoaderData, useTransition, Link, redirect, Outlet } from "remix";
 import invariant from "tiny-invariant";
 import { db } from "~/utils/db.server";
 import { DomainsList } from "~/components/domains-list";
-import styles from "~/styles/index.css";
 import { getUserId } from "~/utils/session.server";
 
 export let meta: MetaFunction = () => {
@@ -17,10 +11,6 @@ export let meta: MetaFunction = () => {
     title: "Funniest domains",
     description: "A collection of the funniest domains out there",
   };
-};
-
-export let links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: styles }];
 };
 
 type LoaderData = {
@@ -62,7 +52,9 @@ export let action: ActionFunction = async ({ request }) => {
   switch (action) {
     case "like":
       let domainId = body.get("domain-id");
-      invariant(typeof domainId === "string");
+      if (typeof domainId !== "string") {
+        return { error: `Form not submitted correctly.` };
+      }
 
       await db.domain.update({
         where: { id: domainId },
@@ -74,13 +66,9 @@ export let action: ActionFunction = async ({ request }) => {
       });
 
       return redirect(url.pathname + url.search);
-    case "login":
-      console.log({ body });
-
-      return redirect(url.pathname + url.search);
 
     default:
-      return redirect(url.pathname + url.search);
+      return { error: `Invalid action.` };
   }
 };
 
@@ -117,20 +105,22 @@ export default function Domains() {
   }
 
   return (
-    <div className="container">
-      <h1>funniest.domains</h1>
+    <div className="w-full mx-auto max-w-lg flex flex-col h-full py-8 px-4">
+      <h1 className="font-bold text-2xl text-gray-900 mb-6">
+        funniest.domains
+      </h1>
 
       {optimisticDomainsList ?? (
         <DomainsList isLoggedIn={isLoggedIn} domains={domains} />
       )}
 
       {pages > 1 ? (
-        <footer className="pagination-footer">
-          <ol className="pagination-footer-list">
+        <footer className="mt-auto">
+          <ol className="flex gap-3">
             {Array.from({ length: pages }).map((_, index) => (
               <li key={index}>
                 <Link
-                  className="pagination-page-link"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   to={`?page=${index + 1}`}
                   prefetch="intent"
                 >
@@ -141,6 +131,8 @@ export default function Domains() {
           </ol>
         </footer>
       ) : null}
+
+      <Outlet />
     </div>
   );
 }

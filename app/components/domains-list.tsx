@@ -1,9 +1,6 @@
-import { Dialog } from "@headlessui/react";
 import type { Domain } from "@prisma/client";
-import { useState } from "react";
-import { Form } from "remix";
+import { Form, useNavigate, useLocation } from "remix";
 import { LikeButton } from "./like-button";
-import { LoginDialog } from "./login-dialog";
 
 type Props = {
   domains: Pick<Domain, "id" | "name" | "likes">[];
@@ -11,44 +8,39 @@ type Props = {
 };
 
 export function DomainsList({ domains, isLoggedIn }: Props) {
-  let [isLoginOpen, setIsLoginOpen] = useState(false);
+  let navigate = useNavigate();
+  let location = useLocation();
 
   return (
-    <ol className="domains-list">
-      {domains.map((domain) => (
-        <li key={domain.id}>
-          <div className="domain">
-            <a href={`https://${domain.name}`}>{domain.name}</a>
+    <>
+      <ol className="flex flex-col gap-4">
+        {domains.map((domain) => (
+          <li key={domain.id}>
+            <div className="flex flex-col items-start">
+              <a href={`https://${domain.name}`}>{domain.name}</a>
 
-            {isLoggedIn ? (
-              <Form method="post">
-                <input type="hidden" name="domain-id" value={domain.id} />
-                <input type="hidden" name="_action" value="like" />
+              {isLoggedIn ? (
+                <Form
+                  action={location.pathname + location.search}
+                  method="post"
+                >
+                  <input type="hidden" name="domain-id" value={domain.id} />
+                  <input type="hidden" name="_action" value="like" />
 
-                <LikeButton
-                  likes={Math.floor(domain.likes)}
-                  type="submit"
-                  className="like-button"
-                />
-              </Form>
-            ) : (
-              <>
-                <LikeButton
-                  likes={Math.floor(domain.likes)}
-                  className="like-button"
-                  onClick={() => setIsLoginOpen(true)}
-                />
-
-                <LoginDialog
-                  open={isLoginOpen}
-                  description="You need an account to like domains"
-                  onClose={() => setIsLoginOpen(false)}
-                />
-              </>
-            )}
-          </div>
-        </li>
-      ))}
-    </ol>
+                  <LikeButton likes={Math.floor(domain.likes)} type="submit" />
+                </Form>
+              ) : (
+                <>
+                  <LikeButton
+                    likes={Math.floor(domain.likes)}
+                    onClick={() => navigate("login" + location.search)}
+                  />
+                </>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }

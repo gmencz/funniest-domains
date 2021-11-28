@@ -11,18 +11,30 @@ datasource db {
 }
 
 model Domain {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String   @unique @db.VarChar(255)
-  likes     Int      @default(0)
-  likedBy   User[]
+  id        String             @id @default(uuid())
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  name      String             @unique @db.VarChar(255)
+  likes     Int                @default(0)
+  likedBy   UserLikedDomains[]
 }
 
 model User {
-  id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  username     String   @unique
-  likedDomains Domain[]
+  id           String             @id @default(uuid())
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  username     String             @unique
+  password     String
+  likedDomains UserLikedDomains[]
+}
+
+model UserLikedDomains {
+  domain   Domain @relation(fields: [domainId], references: [id])
+  domainId String
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+
+  @@id([userId, domainId])
+  @@index([domainId])
+  @@index([userId])
 }
