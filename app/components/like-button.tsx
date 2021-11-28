@@ -1,18 +1,48 @@
-import { HeartIcon } from "@heroicons/react/solid";
-import type { ButtonHTMLAttributes } from "react";
+import { HeartIcon } from "@heroicons/react/outline";
+import type {
+  AnchorHTMLAttributes,
+  ButtonHTMLAttributes,
+  LinkHTMLAttributes,
+} from "react";
+import { Link } from "remix";
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   likes: number;
 };
 
-export function LikeButton({ likes, ...htmlAttributes }: Props) {
+export function LikeButton({ likes, ...htmlAttributes }: ButtonProps) {
   return (
-    <button
-      className="mt-2 inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+    <button className="flex items-center space-x-2 group" {...htmlAttributes}>
+      <div className="w-8 h-8 p-1.5 transition-colors group-hover:bg-red-100 rounded-full">
+        <HeartIcon className="w-full h-full text-gray-700 mr-1 transition-colors group-hover:text-red-500" />
+      </div>
+
+      <span className="text-sm font-semibold text-gray-700 transition-colors group-hover:text-red-500">
+        {Math.floor(likes)}
+      </span>
+    </button>
+  );
+}
+
+type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  likes: number;
+  to: string;
+};
+
+export function LikeLink({ likes, to, ...htmlAttributes }: LinkProps) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center space-x-2 group"
       {...htmlAttributes}
     >
-      <HeartIcon className="w-5 h-5 text-red-600 mr-1" />
-      <span>{Math.floor(likes)}</span>
-    </button>
+      <div className="w-8 h-8 p-1.5 transition-colors group-hover:bg-red-100 rounded-full">
+        <HeartIcon className="w-full h-full text-gray-700 mr-1 transition-colors group-hover:text-red-500" />
+      </div>
+
+      <span className="text-sm font-semibold text-gray-700 transition-colors group-hover:text-red-500">
+        {Math.floor(likes)}
+      </span>
+    </Link>
   );
 }

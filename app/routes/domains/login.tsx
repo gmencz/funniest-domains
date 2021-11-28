@@ -48,13 +48,6 @@ export default function Login() {
       <Dialog.Overlay className="bg-gray-200 bg-opacity-70 fixed inset-0" />
 
       <div className="bg-white relative max-w-md p-4 w-full rounded">
-        <Dialog.Title className="font-bold text-2xl text-gray-900">
-          Account needed
-        </Dialog.Title>
-        <Dialog.Description>
-          You need an account to perform that action
-        </Dialog.Description>
-
         <Form
           action={location.pathname + location.search}
           method="post"

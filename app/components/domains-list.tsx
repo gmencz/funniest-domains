@@ -1,14 +1,14 @@
-import type { Domain } from "@prisma/client";
-import { Form, useNavigate, useLocation } from "remix";
-import { LikeButton } from "./like-button";
+import type { LoaderData } from "~/routes/domains";
+import { Form, useLocation } from "remix";
+import { LikeButton, LikeLink } from "./like-button";
+import { UnlikeButton } from "./unlike-button";
 
 type Props = {
-  domains: Pick<Domain, "id" | "name" | "likes">[];
+  domains: LoaderData["domains"];
   isLoggedIn: boolean;
 };
 
 export function DomainsList({ domains, isLoggedIn }: Props) {
-  let navigate = useNavigate();
   let location = useLocation();
 
   return (
@@ -17,25 +17,48 @@ export function DomainsList({ domains, isLoggedIn }: Props) {
         {domains.map((domain) => (
           <li key={domain.id}>
             <div className="flex flex-col items-start">
-              <a href={`https://${domain.name}`}>{domain.name}</a>
+              <a
+                href={`https://${domain.name}`}
+                className="text-gray-700 font-medium underline"
+              >
+                {domain.name}
+              </a>
 
               {isLoggedIn ? (
                 <Form
                   action={location.pathname + location.search}
                   method="post"
+                  className="mt-2"
                 >
-                  <input type="hidden" name="domain-id" value={domain.id} />
-                  <input type="hidden" name="_action" value="like" />
+                  {domain.likedByUser ? (
+                    <>
+                      <input type="hidden" name="domain-id" value={domain.id} />
+                      <input type="hidden" name="_action" value="unlike" />
 
-                  <LikeButton likes={Math.floor(domain.likes)} type="submit" />
+                      <UnlikeButton
+                        likes={Math.floor(domain.likes)}
+                        type="submit"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <input type="hidden" name="domain-id" value={domain.id} />
+                      <input type="hidden" name="_action" value="like" />
+
+                      <LikeButton
+                        likes={Math.floor(domain.likes)}
+                        type="submit"
+                      />
+                    </>
+                  )}
                 </Form>
               ) : (
-                <>
-                  <LikeButton
+                <div className="mt-2">
+                  <LikeLink
                     likes={Math.floor(domain.likes)}
-                    onClick={() => navigate("login" + location.search)}
+                    to={"login" + location.search}
                   />
-                </>
+                </div>
               )}
             </div>
           </li>

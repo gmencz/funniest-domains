@@ -1,10 +1,18 @@
 import type { Domain } from "@prisma/client";
 import type { LoaderFunction, ActionFunction, MetaFunction } from "remix";
-import { useLoaderData, useTransition, Link, redirect, Outlet } from "remix";
+import {
+  useLoaderData,
+  useTransition,
+  Link,
+  redirect,
+  Outlet,
+  json,
+  useLocation,
+} from "remix";
 import invariant from "tiny-invariant";
 import { db } from "~/utils/db.server";
 import { DomainsList } from "~/components/domains-list";
-import { getUserId } from "~/utils/session.server";
+import { getUserId, requireUserId } from "~/utils/session.server";
 
 export let meta: MetaFunction = () => {
   return {
@@ -13,8 +21,8 @@ export let meta: MetaFunction = () => {
   };
 };
 
-type LoaderData = {
-  domains: Pick<Domain, "id" | "name" | "likes">[];
+export type LoaderData = {
+  domains: (Pick<Domain, "id" | "name" | "likes"> & { likedByUser: boolean })[];
   pages: number;
   isLoggedIn: boolean;
 };
@@ -25,6 +33,39 @@ export let loader: LoaderFunction = async ({ request }) => {
   let url = new URL(request.url);
   let params = new URLSearchParams(url.search);
   let page = params.get("page") ?? 1;
+  let userId = await getUserId(request);
+
+  if (userId) {
+    let [domains, domainsCount] = await Promise.all([
+      db.domain.findMany({
+        orderBy: [{ likes: "desc" }, { updatedAt: "desc" }],
+        select: {
+          id: true,
+          name: true,
+          likes: true,
+          likedBy: {
+            where: { userId: { equals: userId } },
+            select: { userId: true },
+          },
+        },
+        take: DOMAINS_PER_PAGE,
+        skip: Number(page) * DOMAINS_PER_PAGE - 1,
+      }),
+
+      db.domain.count(),
+    ]);
+
+    return {
+      domains: domains.map(({ likedBy, ...domain }) => {
+        return {
+          ...domain,
+          likedByUser: likedBy.length > 0,
+        };
+      }),
+      pages: Math.ceil(domainsCount / DOMAINS_PER_PAGE),
+      isLoggedIn: true,
+    };
+  }
 
   let [domains, domainsCount] = await Promise.all([
     db.domain.findMany({
@@ -38,9 +79,14 @@ export let loader: LoaderFunction = async ({ request }) => {
   ]);
 
   return {
-    domains,
+    domains: domains.map((domain) => {
+      return {
+        ...domain,
+        likedByUser: false,
+      };
+    }),
     pages: Math.ceil(domainsCount / DOMAINS_PER_PAGE),
-    isLoggedIn: !!(await getUserId(request)),
+    isLoggedIn: false,
   };
 };
 
@@ -50,10 +96,33 @@ export let action: ActionFunction = async ({ request }) => {
   let url = new URL(request.url);
 
   switch (action) {
-    case "like":
+    case "like": {
       let domainId = body.get("domain-id");
       if (typeof domainId !== "string") {
-        return { error: `Form not submitted correctly.` };
+        return json({ error: `Invalid body` }, { status: 400 });
+      }
+
+      let searchParams = new URLSearchParams(url.search);
+      let page = searchParams.get("page");
+      let userId = await requireUserId(
+        request,
+        page ? `${url.pathname}/login?page=${page}` : `${url.pathname}/login`
+      );
+
+      let isAlreadyliked = await db.userLikedDomains.findUnique({
+        where: {
+          userId_domainId: {
+            domainId,
+            userId,
+          },
+        },
+      });
+
+      if (isAlreadyliked) {
+        return json(
+          { error: `You've already liked this domain` },
+          { status: 400 }
+        );
       }
 
       await db.domain.update({
@@ -62,19 +131,64 @@ export let action: ActionFunction = async ({ request }) => {
           likes: {
             increment: 1,
           },
+          likedBy: { create: { userId } },
         },
       });
 
       return redirect(url.pathname + url.search);
+    }
+
+    case "unlike": {
+      let domainId = body.get("domain-id");
+      if (typeof domainId !== "string") {
+        return json({ error: `Invalid body` }, { status: 400 });
+      }
+
+      let searchParams = new URLSearchParams(url.search);
+      let page = searchParams.get("page");
+      let userId = await requireUserId(
+        request,
+        page ? `${url.pathname}/login?page=${page}` : `${url.pathname}/login`
+      );
+
+      let isLiked = await db.userLikedDomains.findUnique({
+        where: {
+          userId_domainId: {
+            domainId,
+            userId,
+          },
+        },
+      });
+
+      if (!isLiked) {
+        return json(
+          { error: `You haven't liked this domain` },
+          { status: 400 }
+        );
+      }
+
+      await db.domain.update({
+        where: { id: domainId },
+        data: {
+          likes: {
+            decrement: 1,
+          },
+          likedBy: { delete: { userId_domainId: { userId, domainId } } },
+        },
+      });
+
+      return redirect(url.pathname + url.search);
+    }
 
     default:
-      return { error: `Invalid action.` };
+      return json({ error: `Invalid body` }, { status: 400 });
   }
 };
 
 export default function Domains() {
   let { domains, pages, isLoggedIn } = useLoaderData<LoaderData>();
   let transition = useTransition();
+  let location = useLocation();
   let optimisticDomainsList;
 
   if (transition.submission) {
@@ -82,7 +196,7 @@ export default function Domains() {
     let action = body.get("_action");
 
     switch (action) {
-      case "like":
+      case "like": {
         let domainId = body.get("domain-id");
         invariant(typeof domainId === "string");
 
@@ -94,6 +208,7 @@ export default function Domains() {
                 return {
                   ...domain,
                   likes: domain.likes + 1,
+                  likedByUser: true,
                 };
               }
 
@@ -101,14 +216,51 @@ export default function Domains() {
             })}
           />
         );
+
+        break;
+      }
+
+      case "unlike": {
+        let domainId = body.get("domain-id");
+        invariant(typeof domainId === "string");
+
+        optimisticDomainsList = (
+          <DomainsList
+            isLoggedIn={isLoggedIn}
+            domains={domains.map((domain) => {
+              if (domain.id === domainId) {
+                return {
+                  ...domain,
+                  likes: domain.likes - 1,
+                  likedByUser: false,
+                };
+              }
+
+              return domain;
+            })}
+          />
+        );
+
+        break;
+      }
     }
   }
 
   return (
-    <div className="w-full mx-auto max-w-lg flex flex-col h-full py-8 px-4">
-      <h1 className="font-bold text-2xl text-gray-900 mb-6">
-        funniest.domains
-      </h1>
+    <div className="w-full mx-auto max-w-2xl flex flex-col h-full py-8 px-6 border-r-2 border-l-2 border-gray-200">
+      <header className="mb-8 flex items-center">
+        <h1 className="font-black text-2xl text-gray-900 italic mr-4">
+          funniest.domains
+        </h1>
+
+        <Link
+          to={"login" + location.search}
+          type="button"
+          className="ml-auto inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Login
+        </Link>
+      </header>
 
       {optimisticDomainsList ?? (
         <DomainsList isLoggedIn={isLoggedIn} domains={domains} />

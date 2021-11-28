@@ -52,6 +52,15 @@ function validatePassword(password: string) {
   }
 }
 
+export async function requireUserId(request: Request, redirectTo: string) {
+  let session = await getUserSession(request);
+  let userId = session.get("userId");
+  if (!userId || typeof userId !== "string") {
+    throw redirect(redirectTo);
+  }
+  return userId;
+}
+
 export async function handleUserLogin(body: FormData, redirectTo: string) {
   let loginType = body.get("type");
   let username = body.get("username");
