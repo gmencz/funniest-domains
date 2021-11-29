@@ -1,5 +1,5 @@
 import { compare, hash } from "bcrypt";
-import { createCookieSessionStorage, redirect } from "remix";
+import { createCookieSessionStorage, redirect, json } from "remix";
 import { db } from "./db.server";
 
 let sessionSecret = process.env.SESSION_SECRET;
@@ -71,7 +71,10 @@ export async function handleUserLogin(body: FormData, redirectTo: string) {
     typeof username !== "string" ||
     typeof password !== "string"
   ) {
-    return { formError: `Form not submitted correctly.` };
+    return json(
+      { formError: `Form not submitted correctly.` },
+      { status: 400 }
+    );
   }
 
   let fields = { loginType, username, password };
@@ -81,7 +84,7 @@ export async function handleUserLogin(body: FormData, redirectTo: string) {
   };
 
   if (Object.values(fieldErrors).some(Boolean)) {
-    return { fieldErrors, fields };
+    return json({ fieldErrors, fields }, { status: 400 });
   }
 
   switch (loginType) {
@@ -97,16 +100,23 @@ export async function handleUserLogin(body: FormData, redirectTo: string) {
       });
 
       if (!user) {
-        return { fields, formError: `Invalid username or password` };
+        return json(
+          { fields, formError: `Invalid username or password` },
+          { status: 400 }
+        );
       }
 
       let isValidPassword = await compare(password, user.password);
       if (!isValidPassword) {
-        return { fields, formError: `Invalid username or password` };
+        return json(
+          { fields, formError: `Invalid username or password` },
+          { status: 400 }
+        );
       }
 
       return createUserSession(user.id, redirectTo);
     }
+
     case "register": {
       let userExists = await db.user.findUnique({
         where: { username },
@@ -116,10 +126,13 @@ export async function handleUserLogin(body: FormData, redirectTo: string) {
       });
 
       if (userExists) {
-        return {
-          fields,
-          formError: `User with username ${username} already exists`,
-        };
+        return json(
+          {
+            fields,
+            formError: `User with username ${username} already exists`,
+          },
+          { status: 400 }
+        );
       }
 
       let user = await db.user.create({
@@ -133,6 +146,6 @@ export async function handleUserLogin(body: FormData, redirectTo: string) {
     }
 
     default:
-      return { fields, formError: `Login type invalid` };
+      return json({ fields, formError: `Login type invalid` }, { status: 400 });
   }
 }

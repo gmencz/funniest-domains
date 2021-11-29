@@ -20,12 +20,13 @@ model Domain {
 }
 
 model User {
-  id           String             @id @default(uuid())
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  username     String             @unique
-  password     String
-  likedDomains UserLikedDomains[]
+  id                String             @id @default(uuid())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  username          String             @unique
+  password          String
+  likedDomains      UserLikedDomains[]
+  domainSubmissions DomainSubmission[]
 }
 
 model UserLikedDomains {
@@ -37,4 +38,16 @@ model UserLikedDomains {
   @@id([userId, domainId])
   @@index([domainId])
   @@index([userId])
+}
+
+model DomainSubmission {
+  id            String   @id @default(uuid())
+  domain        String
+  submittedBy   User     @relation(fields: [submittedById], references: [id])
+  submittedById String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([domain, submittedById])
+  @@index([submittedById])
 }

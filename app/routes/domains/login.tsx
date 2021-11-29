@@ -8,6 +8,7 @@ import {
   ActionFunction,
   useLocation,
 } from "remix";
+import type { MetaFunction } from "remix";
 import { handleUserLogin } from "~/utils/session.server";
 
 type ActionData = {
@@ -20,6 +21,13 @@ type ActionData = {
     loginType: string;
     username: string;
     password: string;
+  };
+};
+
+export let meta: MetaFunction = () => {
+  return {
+    title: "Funniest domains",
+    description: "A collection of the funniest domains out there",
   };
 };
 
@@ -91,7 +99,7 @@ export default function Login() {
             <label
               ref={usernameInputRef}
               htmlFor="username-input"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Username
             </label>
@@ -123,7 +131,7 @@ export default function Login() {
           <div className="mt-4 flex-col">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Password
             </label>

@@ -1,5 +1,10 @@
 import type { Domain } from "@prisma/client";
-import type { LoaderFunction, ActionFunction, MetaFunction } from "remix";
+import type {
+  LoaderFunction,
+  ActionFunction,
+  MetaFunction,
+  ShouldReloadFunction,
+} from "remix";
 import {
   useLoaderData,
   useTransition,
@@ -13,6 +18,14 @@ import invariant from "tiny-invariant";
 import { db } from "~/utils/db.server";
 import { DomainsList } from "~/components/domains-list";
 import { getUserId, requireUserId } from "~/utils/session.server";
+
+export let unstable_shouldReload: ShouldReloadFunction = ({ url, prevUrl }) => {
+  let prevSearch = new URLSearchParams(prevUrl.search);
+  let search = new URLSearchParams(url.search);
+  let prevPage = prevSearch.get("page");
+  let page = search.get("page");
+  return prevPage !== page;
+};
 
 export let meta: MetaFunction = () => {
   return {
