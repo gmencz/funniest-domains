@@ -1,4 +1,4 @@
-# fly.toml file generated for funniest-domains on 2021-11-23T18:39:42+01:00
+# fly.toml file generated for funniest-domains on 2021-11-29T21:56:30+01:00
 
 app = "funniest-domains"
 
@@ -7,7 +7,6 @@ kill_timeout = 5
 processes = []
 
 [env]
-  PORT = "8080"
 
 [experimental]
   allowed_public_ports = []
